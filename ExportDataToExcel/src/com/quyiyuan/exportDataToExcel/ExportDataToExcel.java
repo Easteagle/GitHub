@@ -36,84 +36,81 @@ public class ExportDataToExcel {
 	/**
 	 * 
 	 */
-	public static final String FILE_PATH = "C:\\Users\\lenovo\\Desktop\\1.txt";
+	public static SimpleDateFormat SDF = new SimpleDateFormat(
+			"yyyy-MM-dd HH:mm:ss");
 
 	/**
 	 * 
 	 */
-	public static final String EXCEL_PATH = "C:\\Users\\lenovo\\Desktop\\";
+	public static SimpleDateFormat SDF_YYYYMMDD = new SimpleDateFormat(
+			"yyyy-MM-dd");
 
 	/**
 	 * 
 	 */
-	public static final String TIME_LINE = "19:30";
+	public static SimpleDateFormat SDF_HHMMSS = new SimpleDateFormat("HH:mm:ss");
 
-	/**
-	 * 
-	 */
-	public static final int AMOUNT = 15;
+	static {
+		SDF.setLenient(false);
+		SDF_YYYYMMDD.setLenient(false);
+		SDF_HHMMSS.setLenient(false);
+	}
 
-	/**
-	 * 
-	 */
-	public static final String USERNAME = "冯乾宁";
-
-	/**
-	 * 
-	 */
-	public static final String DEPARTMENT = "APP研发部";
-
-	/**
-	 * 
-	 */
-	public static final String TEMPLATE_NAME = "formwork.xls";
-
-	/**
-	 * 
-	 */
-	public static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-	/**
-	 * 
-	 */
-	public static final SimpleDateFormat SDF_YYYYMMDD = new SimpleDateFormat("yyyy-MM-dd");
-
-	/**
-	 * 
-	 */
-	public static final SimpleDateFormat SDF_HHMMSS = new SimpleDateFormat("HH:mm:ss");
-
-	public static void main(String[] args) throws Exception {
-		ExportDataToExcel exportDataToExcel = new ExportDataToExcel();
-		BufferedReader br = exportDataToExcel.getBufferedReaderByFile(FILE_PATH);
-		if (br == null) {
-			System.out.println("没有发现文件");
-		} else {
-			List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel.readFile(br);
-//			System.out.println(dataMapList);
-			if (dataMapList != null && dataMapList.size() > 0) {
-				for (Map<Integer, DayEntity> dataMap : dataMapList) {
-					exportDataToExcel.dataExportToExcel(dataMap);
+	public static void execute() {
+		try {
+			ExportDataToExcel exportDataToExcel = new ExportDataToExcel();
+			BufferedReader br = exportDataToExcel
+					.getBufferedReaderByFile(Config.FILE_PATH);
+			if (br == null) {
+				System.out.println("没有发现文件");
+			} else {
+				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel
+						.readFile(br);
+				if (dataMapList != null && dataMapList.size() > 0) {
+					for (Map<Integer, DayEntity> dataMap : dataMapList) {
+						exportDataToExcel.dataExportToExcel(dataMap);
+					}
 				}
 			}
+		} catch (RowsExceededException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (WriteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BiffException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
-	private BufferedReader getBufferedReaderByFile(String filePath) throws FileNotFoundException {
+	private BufferedReader getBufferedReaderByFile(String filePath)
+			throws FileNotFoundException {
 		BufferedReader br = null;
 		if (StringUtils.isBlank(filePath)) {
 			return null;
 		} else {
 			File file = new File(filePath);
 			if (file.exists()) {
-				br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath)));
+				br = new BufferedReader(new InputStreamReader(
+						new FileInputStream(filePath)));
 			}
 		}
 		return br;
 	}
 
 	@SuppressWarnings("deprecation")
-	private List<Map<Integer, DayEntity>> readFile(BufferedReader br) throws IOException, ParseException {
+	private List<Map<Integer, DayEntity>> readFile(BufferedReader br)
+			throws IOException, ParseException {
 		List<Map<Integer, DayEntity>> mapList = new ArrayList<Map<Integer, DayEntity>>();
 		Map<Integer, DayEntity> map = null;
 		int mounth = -1;
@@ -125,12 +122,13 @@ public class ExportDataToExcel {
 					if (map != null && !map.isEmpty()) {
 						mapList.add(map);
 					}
-					map = new TreeMap<Integer, DayEntity>(new Comparator<Integer>() {
-						@Override
-						public int compare(Integer key1, Integer key2) {
-							return key1.compareTo(key2);
-						}
-					});
+					map = new TreeMap<Integer, DayEntity>(
+							new Comparator<Integer>() {
+								@Override
+								public int compare(Integer key1, Integer key2) {
+									return key1.compareTo(key2);
+								}
+							});
 					map.put(dayEntity.getNumber(), dayEntity);
 					mounth = dayEntity.getStartDate().getMonth();
 				} else {
@@ -167,11 +165,14 @@ public class ExportDataToExcel {
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTime(parseDate);
 				dayEntity.setNumber(calendar.get(Calendar.DAY_OF_MONTH));
-				dayEntity.setWeekName(getWeekNameByDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)));
-				String startDate = SDF_YYYYMMDD.format(parseDate) + " " + SDF_HHMMSS.format(parseStartTime);
+				dayEntity.setWeekName(getWeekNameByDayOfWeek(calendar
+						.get(Calendar.DAY_OF_WEEK)));
+				String startDate = SDF_YYYYMMDD.format(parseDate) + " "
+						+ SDF_HHMMSS.format(parseStartTime);
 				dayEntity.setStartDate(SDF.parse(startDate));
 				if (parseEndTime != null) {
-					String endDate = SDF_YYYYMMDD.format(parseDate) + " " + SDF_HHMMSS.format(parseEndTime);
+					String endDate = SDF_YYYYMMDD.format(parseDate) + " "
+							+ SDF_HHMMSS.format(parseEndTime);
 					dayEntity.setEndDate(SDF.parse(endDate));
 				}
 			}
@@ -240,18 +241,21 @@ public class ExportDataToExcel {
 
 	@SuppressWarnings("deprecation")
 	private void dataExportToExcel(Map<Integer, DayEntity> dataMap)
-			throws IOException, RowsExceededException, WriteException, BiffException {
+			throws IOException, RowsExceededException, WriteException,
+			BiffException {
 		if (dataMap != null && !dataMap.isEmpty()) {
 			Workbook in = getExcelTemplate();
 			int month = 0;
-			Iterator<Entry<Integer, DayEntity>> iter = dataMap.entrySet().iterator();
+			Iterator<Entry<Integer, DayEntity>> iter = dataMap.entrySet()
+					.iterator();
 			if (iter.hasNext()) {
 				Entry<Integer, DayEntity> entry = iter.next();
 				DayEntity dayEntity = entry.getValue();
 				month = dayEntity.getStartDate().getMonth() + 1;
 			}
-			WritableWorkbook wb = Workbook.createWorkbook(
-					new File(EXCEL_PATH + USERNAME + month + "月份统计表" + getCurrentTimestamp() + ".xls"), in);
+			WritableWorkbook wb = Workbook.createWorkbook(new File(
+					Config.EXCEL_PATH + Config.USERNAME + month + "月份统计表"
+							+ getCurrentTimestamp() + ".xls"), in);
 			WritableSheet sheet = wb.getSheet(0);
 			int countDay = 0;
 			for (int i = 1; i <= 16; i++) {
@@ -262,10 +266,14 @@ public class ExportDataToExcel {
 					if (!StringUtils.isBlank(dateTime) && dateTime.length() > 6) {
 						WritableCell weekName = sheet.getWritableCell(1, 2 + i);
 						WritableCell endTime = sheet.getWritableCell(2, 2 + i);
-						WritableCell description = sheet.getWritableCell(3, 2 + i);
-						sheet.addCell(new Label(1, i + 2, dayEntityLeft.getWeekName(), weekName.getCellFormat()));
-						sheet.addCell(new Label(2, i + 2, dateTime, endTime.getCellFormat()));
-						sheet.addCell(new Label(3, i + 2, "√" + description.getContents().substring(1),
+						WritableCell description = sheet.getWritableCell(3,
+								2 + i);
+						sheet.addCell(new Label(1, i + 2, dayEntityLeft
+								.getWeekName(), weekName.getCellFormat()));
+						sheet.addCell(new Label(2, i + 2, dateTime, endTime
+								.getCellFormat()));
+						sheet.addCell(new Label(3, i + 2, "√"
+								+ description.getContents().substring(1),
 								description.getCellFormat()));
 						countDay++;
 					}
@@ -275,21 +283,27 @@ public class ExportDataToExcel {
 					if (!StringUtils.isBlank(dateTime) && dateTime.length() > 6) {
 						WritableCell weekName = sheet.getWritableCell(6, 2 + i);
 						WritableCell endTime = sheet.getWritableCell(7, 2 + i);
-						WritableCell description = sheet.getWritableCell(8, 2 + i);
-						sheet.addCell(new Label(6, i + 2, dayEntityRight.getWeekName(), weekName.getCellFormat()));
-						sheet.addCell(new Label(7, i + 2, dateTime, endTime.getCellFormat()));
-						sheet.addCell(new Label(8, i + 2, "√" + description.getContents().substring(1),
+						WritableCell description = sheet.getWritableCell(8,
+								2 + i);
+						sheet.addCell(new Label(6, i + 2, dayEntityRight
+								.getWeekName(), weekName.getCellFormat()));
+						sheet.addCell(new Label(7, i + 2, dateTime, endTime
+								.getCellFormat()));
+						sheet.addCell(new Label(8, i + 2, "√"
+								+ description.getContents().substring(1),
 								description.getCellFormat()));
 						countDay++;
 					}
 				}
 				if (i == 16) {
 					WritableCell title = sheet.getWritableCell(0, 1);
-					sheet.addCell(new Label(0, 1,
-							"姓名：" + USERNAME + "            部门：" + DEPARTMENT + "            记录月份：" + month + "月份",
-							title.getCellFormat()));
+					sheet.addCell(new Label(0, 1, "姓名：" + Config.USERNAME
+							+ "            部门：" + Config.DEPARTMENT
+							+ "            记录月份：" + month + "月份", title
+							.getCellFormat()));
 					WritableCell totalAmount = sheet.getWritableCell(5, 18);
-					sheet.addCell(new Label(5, 18, "补贴天数：" + countDay + " 天     金额：" + countDay * AMOUNT + " 元",
+					sheet.addCell(new Label(5, 18, "补贴天数：" + countDay
+							+ " 天     金额：" + countDay * Config.AMOUNT + " 元",
 							totalAmount.getCellFormat()));
 				}
 			}
@@ -301,15 +315,16 @@ public class ExportDataToExcel {
 	private String getEndTimeLine(DayEntity dayEntity) {
 		String timeLine = "";
 		String startDate = SDF.format(dayEntity.getStartDate());
-		String endDate = dayEntity.getEndDate() == null ? "" : SDF.format(dayEntity.getEndDate());
+		String endDate = dayEntity.getEndDate() == null ? "" : SDF
+				.format(dayEntity.getEndDate());
 		String dateTime = "";
 		if (!StringUtils.isBlank(endDate) && endDate.length() > 10) {
-			timeLine = endDate.substring(0, 10) + " " + TIME_LINE;
+			timeLine = endDate.substring(0, 10) + " " + Config.TIME_LINE;
 			if (endDate.compareTo(timeLine) >= 0) {
 				dateTime = SDF_HHMMSS.format(dayEntity.getEndDate());
 			}
 		} else if (!StringUtils.isBlank(startDate) && startDate.length() > 10) {
-			timeLine = startDate.substring(0, 10) + " " + TIME_LINE;
+			timeLine = startDate.substring(0, 10) + " " + Config.TIME_LINE;
 			if (startDate.compareTo(timeLine) >= 0) {
 				dateTime = SDF_HHMMSS.format(dayEntity.getStartDate());
 			}
@@ -318,7 +333,8 @@ public class ExportDataToExcel {
 	}
 
 	private Workbook getExcelTemplate() throws IOException, BiffException {
-		InputStream is = this.getClass().getClassLoader().getResourceAsStream(TEMPLATE_NAME);
+		InputStream is = this.getClass().getClassLoader()
+				.getResourceAsStream(Config.TEMPLATE_NAME);
 		Workbook workbook = null;
 		workbook = Workbook.getWorkbook(is);
 		if (is != null) {

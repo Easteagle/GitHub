@@ -4,6 +4,8 @@ import java.awt.Toolkit;
 
 import javax.swing.JOptionPane;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  *
  * @author __USER__
@@ -221,11 +223,17 @@ public class Frame extends javax.swing.JFrame {
 		String amountNew = amount.getText();
 		String timeLineNew = timeLine.getText();
 		String txtAddressNew = txtAddress.getText();
+		if (StringUtils.isBlank(txtAddressNew)) {
+			JOptionPane.showMessageDialog(this, "输入文件路径为空", "提示 ",
+					JOptionPane.NO_OPTION);
+			this.exportButton.setEnabled(true);
+			return;
+		}
 		String excelAddressNew = excelAddress.getText();
 		Config.saveConfig(usernameNew, departmentNew, amountNew, timeLineNew,
 				txtAddressNew, excelAddressNew);
-		ExportDataToExcel.execute();
-		JOptionPane.showMessageDialog(this, "导出完成", "提示 ",
+		String result = ExportDataToExcel.execute();
+		JOptionPane.showMessageDialog(this, result, "提示 ",
 				JOptionPane.NO_OPTION);
 		this.exportButton.setEnabled(true);
 	}

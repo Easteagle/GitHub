@@ -56,13 +56,13 @@ public class ExportDataToExcel {
 		SDF_HHMMSS.setLenient(false);
 	}
 
-	public static void execute() {
+	public static String execute() {
 		try {
 			ExportDataToExcel exportDataToExcel = new ExportDataToExcel();
 			BufferedReader br = exportDataToExcel
 					.getBufferedReaderByFile(Config.FILE_PATH);
 			if (br == null) {
-				System.out.println("没有发现文件");
+				return "没有发现输入文件";
 			} else {
 				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel
 						.readFile(br);
@@ -91,6 +91,7 @@ public class ExportDataToExcel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return "导出完成";
 	}
 
 	private BufferedReader getBufferedReaderByFile(String filePath)

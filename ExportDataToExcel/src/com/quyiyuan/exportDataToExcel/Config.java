@@ -1,6 +1,7 @@
 package com.quyiyuan.exportDataToExcel;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -62,6 +63,11 @@ public class Config {
 	private static final String PROPERTIES_FILE_NAME = "config.properties";
 
 	/**
+	 * 配置文件所在路径
+	 */
+	private static String PROPERTIES_FILE_PATH = "";
+
+	/**
 	 * 配置文件实例
 	 */
 	private static final Properties properties = new Properties();
@@ -81,9 +87,14 @@ public class Config {
 	 * @throws IOException
 	 */
 	private static void loadConfig() {
-		InputStream inputStream = Config.class.getClassLoader()
-				.getResourceAsStream(PROPERTIES_FILE_NAME);
+		String jarPath = System.getProperty("user.dir");
+		InputStream inputStream =null;
 		try {
+			if (!StringUtils.isBlank(jarPath)) {
+				PROPERTIES_FILE_PATH = jarPath + File.separator;
+				EXCEL_PATH = PROPERTIES_FILE_PATH;
+			}
+			inputStream = new FileInputStream(PROPERTIES_FILE_PATH + PROPERTIES_FILE_NAME);
 			if (inputStream != null) {
 				// 读取到配置文件时，直接使用配置文件赋值
 				properties.load(inputStream);
@@ -158,13 +169,15 @@ public class Config {
 			properties.put("FILE_PATH", FILE_PATH);
 		}
 		if (!StringUtils.isBlank(excelAddressNew)) {
+			if (!excelAddressNew.endsWith("\\")
+					&& !excelAddressNew.endsWith(File.separator)) {
+				excelAddressNew = excelAddressNew + File.separator;
+			}
 			EXCEL_PATH = excelAddressNew;
 			properties.put("EXCEL_PATH", EXCEL_PATH);
 		}
 		try {
-			FileOutputStream os = new FileOutputStream(new File(Config.class
-					.getClassLoader().getResource(PROPERTIES_FILE_NAME)
-					.getPath()));
+			FileOutputStream os = new FileOutputStream(new File(PROPERTIES_FILE_PATH + PROPERTIES_FILE_NAME));
 			properties.store(os, "save config file");
 		} catch (FileNotFoundException e) {
 		} catch (IOException e) {

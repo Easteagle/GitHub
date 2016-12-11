@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
 import jxl.write.WriteException;
 import jxl.write.biff.RowsExceededException;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 public class ExportDataToExcel {
 
@@ -64,8 +67,8 @@ public class ExportDataToExcel {
 			if (br == null) {
 				return "没有发现输入文件";
 			} else {
-				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel
-						.readFile(br);
+				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel.readFile(br,
+						Config.SOURCE_FILE_FORMAT_JSON);
 				if (dataMapList != null && dataMapList.size() > 0) {
 					for (Map<Integer, DayEntity> dataMap : dataMapList) {
 						exportDataToExcel.dataExportToExcel(dataMap);
@@ -73,22 +76,16 @@ public class ExportDataToExcel {
 				}
 			}
 		} catch (RowsExceededException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (WriteException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (BiffException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return "导出完成";
@@ -110,43 +107,103 @@ public class ExportDataToExcel {
 	}
 
 	@SuppressWarnings("deprecation")
-	private List<Map<Integer, DayEntity>> readFile(BufferedReader br)
+	private List<Map<Integer, DayEntity>> readFile(BufferedReader br, String sourceFileFormat)
 			throws IOException, ParseException {
 		List<Map<Integer, DayEntity>> mapList = new ArrayList<Map<Integer, DayEntity>>();
-		Map<Integer, DayEntity> map = null;
-		int mounth = -1;
-		String temp = "";
-		while ((temp = br.readLine()) != null) {
-			DayEntity dayEntity = getDayEntityByString(temp);
-			if (dayEntity != null) {
-				if (mounth != dayEntity.getStartDate().getMonth()) {
-					if (map != null && !map.isEmpty()) {
-						mapList.add(map);
+		if (Config.SOURCE_FILE_FORMAT_TXT.equals(sourceFileFormat)) {
+			//TXT格式
+			Map<Integer, DayEntity> map = null;
+			int mounth = -1;
+			String temp = "";
+			while ((temp = br.readLine()) != null) {
+				DayEntity dayEntity = getDayEntityByTxtString(temp);
+				if (dayEntity != null) {
+					if (mounth != dayEntity.getStartDate().getMonth()) {
+						if (map != null && !map.isEmpty()) {
+							mapList.add(map);
+						}
+						map = new TreeMap<Integer, DayEntity>(
+								new Comparator<Integer>() {
+									@Override
+									public int compare(Integer key1, Integer key2) {
+										return key1.compareTo(key2);
+									}
+								});
+						map.put(dayEntity.getDayNumber(), dayEntity);
+						mounth = dayEntity.getStartDate().getMonth();
+					} else {
+						map.put(dayEntity.getDayNumber(), dayEntity);
 					}
-					map = new TreeMap<Integer, DayEntity>(
-							new Comparator<Integer>() {
-								@Override
-								public int compare(Integer key1, Integer key2) {
-									return key1.compareTo(key2);
-								}
-							});
-					map.put(dayEntity.getNumber(), dayEntity);
-					mounth = dayEntity.getStartDate().getMonth();
-				} else {
-					map.put(dayEntity.getNumber(), dayEntity);
 				}
 			}
-		}
-		if (map != null && !map.isEmpty()) {
-			mapList.add(map);
+			if (map != null && !map.isEmpty()) {
+				mapList.add(map);
+			}
+		} else if (Config.SOURCE_FILE_FORMAT_JSON.equals(sourceFileFormat)) {
+			//JSON格式
+			StringBuilder sourceJsonString = new StringBuilder();
+			String temp = "";
+			while ((temp = br.readLine()) != null) {
+				sourceJsonString.append(temp);
+			}
+			getMapListBySourceJsonString(sourceJsonString.toString().trim(), mapList);
 		}
 		if (br != null) {
 			br.close();
 		}
 		return mapList;
 	}
-
-	private DayEntity getDayEntityByString(String data) throws ParseException {
+	
+	private List<Map<Integer, DayEntity>> getMapListBySourceJsonString(String sourceJsonString,
+			List<Map<Integer, DayEntity>> mapList) throws ParseException {
+		//key月份，value每个月的map
+		Map<Integer, Map<Integer, DayEntity>> resultMap = new HashMap<Integer, Map<Integer, DayEntity>>();
+		if (!StringUtils.isBlank(sourceJsonString)) {
+			JSONObject sourceJsonObject = JSONObject.fromObject(sourceJsonString);
+			if (sourceJsonObject.containsKey("rows")) {
+				String sourceData = sourceJsonObject.getString("rows");
+				if (!StringUtils.isBlank(sourceData)) {
+					JSONArray dataJsonArray = JSONArray.fromObject(sourceData);
+					for (Object obj : dataJsonArray.toArray()) {
+						JSONObject dataJsonObject = JSONObject.fromObject(obj);
+						StringBuilder txtSb=new StringBuilder();
+						if (dataJsonObject.containsKey("WORK_DATE_TIME")
+								&& !StringUtils.isBlank(dataJsonObject.getString("WORK_DATE_TIME"))) {
+							txtSb.append(dataJsonObject.getString("WORK_DATE_TIME"));
+						} else {
+							continue;
+						}
+						if(dataJsonObject.containsKey("MORNING_BEGIN")
+								&& !StringUtils.isBlank(dataJsonObject.getString("MORNING_BEGIN"))){
+							txtSb.append(" ").append(dataJsonObject.getString("MORNING_BEGIN"));
+						}
+						if(dataJsonObject.containsKey("AFTERNOON_END")
+								&& !StringUtils.isBlank(dataJsonObject.getString("AFTERNOON_END"))){
+							txtSb.append(" ").append(dataJsonObject.getString("AFTERNOON_END"));
+						}
+						DayEntity dayEntity = getDayEntityByTxtString(txtSb.toString());
+						if (dayEntity != null) {
+							Map<Integer, DayEntity> monthMap = resultMap.get(dayEntity.getMonthNumber());
+							if (monthMap == null) {
+								monthMap = new HashMap<Integer, DayEntity>();
+							}
+							monthMap.put(dayEntity.getDayNumber(), dayEntity);
+							resultMap.put(dayEntity.getMonthNumber(), monthMap);
+						}
+					}
+				}
+			}
+		}
+		Iterator<Entry<Integer, Map<Integer, DayEntity>>> iter = resultMap.entrySet().iterator();
+		while (iter.hasNext()) {
+			Entry<Integer, Map<Integer, DayEntity>> entry = iter.next();
+			mapList.add(entry.getValue());
+			System.out.println(entry.getValue());
+		}
+		return mapList;
+	}
+	
+	private DayEntity getDayEntityByTxtString(String data) throws ParseException {
 		DayEntity dayEntity = null;
 		if (data.indexOf("-") > 0 && data.indexOf(":") > 10) {
 			data = analysisString(data).trim();
@@ -165,7 +222,8 @@ public class ExportDataToExcel {
 				dayEntity = new DayEntity();
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTime(parseDate);
-				dayEntity.setNumber(calendar.get(Calendar.DAY_OF_MONTH));
+				dayEntity.setDayNumber(calendar.get(Calendar.DAY_OF_MONTH));
+				dayEntity.setMonthNumber(calendar.get(Calendar.MONTH)+1);
 				dayEntity.setWeekName(getWeekNameByDayOfWeek(calendar
 						.get(Calendar.DAY_OF_WEEK)));
 				String startDate = SDF_YYYYMMDD.format(parseDate) + " "

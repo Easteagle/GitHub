@@ -61,6 +61,16 @@ public class Config {
 	 * 配置文件名称
 	 */
 	private static final String PROPERTIES_FILE_NAME = "config.properties";
+	
+	/**
+	 * 源文件格式JSON
+	 */
+	public static final String SOURCE_FILE_FORMAT_JSON = "JSON";
+	
+	/**
+	 * 源文件格式TXT
+	 */
+	public static final String SOURCE_FILE_FORMAT_TXT = "TEXT";
 
 	/**
 	 * 配置文件所在路径

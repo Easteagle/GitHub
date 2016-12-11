@@ -5,13 +5,15 @@ import java.util.Date;
 
 public class DayEntity {
 
-	private Integer number;
+	private Integer dayNumber;
 
 	private String weekName;
 
 	private Date startDate;
 
 	private Date endDate;
+
+	private Integer monthNumber;
 
 	public Date getStartDate() {
 		return startDate;
@@ -29,12 +31,20 @@ public class DayEntity {
 		this.endDate = endDate;
 	}
 
-	public Integer getNumber() {
-		return number;
+	public Integer getDayNumber() {
+		return dayNumber;
 	}
 
-	public void setNumber(Integer number) {
-		this.number = number;
+	public void setDayNumber(Integer dayNumber) {
+		this.dayNumber = dayNumber;
+	}
+
+	public Integer getMonthNumber() {
+		return monthNumber;
+	}
+
+	public void setMonthNumber(Integer monthNumber) {
+		this.monthNumber = monthNumber;
 	}
 
 	public String getWeekName() {
@@ -56,7 +66,7 @@ public class DayEntity {
 		if (endDate != null) {
 			endDateString = sf.format(endDate);
 		}
-		return "{number:" + number + ",weekName:" + weekName + ",startDate:"
+		return "{monthNumber:" + monthNumber + ",dayNumber:" + dayNumber + ",weekName:" + weekName + ",startDate:"
 				+ startDateString + ",endDate:" + endDateString + "}";
 	}
 }

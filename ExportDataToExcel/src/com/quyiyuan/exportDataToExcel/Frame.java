@@ -232,7 +232,12 @@ public class Frame extends javax.swing.JFrame {
 		String excelAddressNew = excelAddress.getText();
 		Config.saveConfig(usernameNew, departmentNew, amountNew, timeLineNew,
 				txtAddressNew, excelAddressNew);
-		String result = ExportDataToExcel.execute();
+		String result = null;
+		try {
+			result = ExportDataToExcel.execute();
+		} catch (CustomException e) {
+			result = e.getMessage();
+		}
 		JOptionPane.showMessageDialog(this, result, "提示 ",
 				JOptionPane.NO_OPTION);
 		this.exportButton.setEnabled(true);

@@ -59,21 +59,24 @@ public class ExportDataToExcel {
 		SDF_HHMMSS.setLenient(false);
 	}
 
-	public static String execute() {
+	public static String execute() throws CustomException {
+		String result = null;
+		int totalAmount = 0;
 		try {
 			ExportDataToExcel exportDataToExcel = new ExportDataToExcel();
 			BufferedReader br = exportDataToExcel
 					.getBufferedReaderByFile(Config.FILE_PATH);
 			if (br == null) {
-				return "没有发现输入文件";
+				result = "没有发现输入文件";
 			} else {
-				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel.readFile(br,
-						Config.SOURCE_FILE_FORMAT_JSON);
+				List<Map<Integer, DayEntity>> dataMapList = exportDataToExcel
+						.readFile(br, Config.SOURCE_FILE_FORMAT_JSON);
 				if (dataMapList != null && dataMapList.size() > 0) {
 					for (Map<Integer, DayEntity> dataMap : dataMapList) {
-						exportDataToExcel.dataExportToExcel(dataMap);
+						totalAmount += exportDataToExcel.dataExportToExcel(dataMap);
 					}
 				}
+				result = "导出完成！总计金额："+totalAmount;
 			}
 		} catch (RowsExceededException e) {
 			e.printStackTrace();
@@ -88,7 +91,7 @@ public class ExportDataToExcel {
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		return "导出完成";
+		return result;
 	}
 
 	private BufferedReader getBufferedReaderByFile(String filePath)
@@ -107,11 +110,12 @@ public class ExportDataToExcel {
 	}
 
 	@SuppressWarnings("deprecation")
-	private List<Map<Integer, DayEntity>> readFile(BufferedReader br, String sourceFileFormat)
-			throws IOException, ParseException {
+	private List<Map<Integer, DayEntity>> readFile(BufferedReader br,
+			String sourceFileFormat) throws IOException, ParseException,
+			CustomException {
 		List<Map<Integer, DayEntity>> mapList = new ArrayList<Map<Integer, DayEntity>>();
 		if (Config.SOURCE_FILE_FORMAT_TXT.equals(sourceFileFormat)) {
-			//TXT格式
+			// TXT格式
 			Map<Integer, DayEntity> map = null;
 			int mounth = -1;
 			String temp = "";
@@ -125,7 +129,8 @@ public class ExportDataToExcel {
 						map = new TreeMap<Integer, DayEntity>(
 								new Comparator<Integer>() {
 									@Override
-									public int compare(Integer key1, Integer key2) {
+									public int compare(Integer key1,
+											Integer key2) {
 										return key1.compareTo(key2);
 									}
 								});
@@ -140,50 +145,66 @@ public class ExportDataToExcel {
 				mapList.add(map);
 			}
 		} else if (Config.SOURCE_FILE_FORMAT_JSON.equals(sourceFileFormat)) {
-			//JSON格式
+			// JSON格式
 			StringBuilder sourceJsonString = new StringBuilder();
 			String temp = "";
 			while ((temp = br.readLine()) != null) {
 				sourceJsonString.append(temp);
 			}
-			getMapListBySourceJsonString(sourceJsonString.toString().trim(), mapList);
+			getMapListBySourceJsonString(sourceJsonString.toString().trim(),
+					mapList);
 		}
 		if (br != null) {
 			br.close();
 		}
 		return mapList;
 	}
-	
-	private List<Map<Integer, DayEntity>> getMapListBySourceJsonString(String sourceJsonString,
-			List<Map<Integer, DayEntity>> mapList) throws ParseException {
-		//key月份，value每个月的map
+
+	private List<Map<Integer, DayEntity>> getMapListBySourceJsonString(
+			String sourceJsonString, List<Map<Integer, DayEntity>> mapList)
+			throws ParseException, CustomException {
+		// key月份，value每个月的map
 		Map<Integer, Map<Integer, DayEntity>> resultMap = new HashMap<Integer, Map<Integer, DayEntity>>();
 		if (!StringUtils.isBlank(sourceJsonString)) {
-			JSONObject sourceJsonObject = JSONObject.fromObject(sourceJsonString);
-			if (sourceJsonObject.containsKey("rows")) {
+			JSONObject sourceJsonObject = null;
+			try {
+				sourceJsonObject = JSONObject.fromObject(sourceJsonString);
+			} catch (Exception e) {
+				throw new CustomException("JSON解析出错，请注意文本格式必须为UTF-8无BOM格式");
+			}
+			if (sourceJsonObject != null
+					&& sourceJsonObject.containsKey("rows")) {
 				String sourceData = sourceJsonObject.getString("rows");
 				if (!StringUtils.isBlank(sourceData)) {
 					JSONArray dataJsonArray = JSONArray.fromObject(sourceData);
 					for (Object obj : dataJsonArray.toArray()) {
 						JSONObject dataJsonObject = JSONObject.fromObject(obj);
-						StringBuilder txtSb=new StringBuilder();
+						StringBuilder txtSb = new StringBuilder();
 						if (dataJsonObject.containsKey("WORK_DATE_TIME")
-								&& !StringUtils.isBlank(dataJsonObject.getString("WORK_DATE_TIME"))) {
-							txtSb.append(dataJsonObject.getString("WORK_DATE_TIME"));
+								&& !StringUtils.isBlank(dataJsonObject
+										.getString("WORK_DATE_TIME"))) {
+							txtSb.append(dataJsonObject
+									.getString("WORK_DATE_TIME"));
 						} else {
 							continue;
 						}
-						if(dataJsonObject.containsKey("MORNING_BEGIN")
-								&& !StringUtils.isBlank(dataJsonObject.getString("MORNING_BEGIN"))){
-							txtSb.append(" ").append(dataJsonObject.getString("MORNING_BEGIN"));
+						if (dataJsonObject.containsKey("MORNING_BEGIN")
+								&& !StringUtils.isBlank(dataJsonObject
+										.getString("MORNING_BEGIN"))) {
+							txtSb.append(" ").append(
+									dataJsonObject.getString("MORNING_BEGIN"));
 						}
-						if(dataJsonObject.containsKey("AFTERNOON_END")
-								&& !StringUtils.isBlank(dataJsonObject.getString("AFTERNOON_END"))){
-							txtSb.append(" ").append(dataJsonObject.getString("AFTERNOON_END"));
+						if (dataJsonObject.containsKey("AFTERNOON_END")
+								&& !StringUtils.isBlank(dataJsonObject
+										.getString("AFTERNOON_END"))) {
+							txtSb.append(" ").append(
+									dataJsonObject.getString("AFTERNOON_END"));
 						}
-						DayEntity dayEntity = getDayEntityByTxtString(txtSb.toString());
+						DayEntity dayEntity = getDayEntityByTxtString(txtSb
+								.toString());
 						if (dayEntity != null) {
-							Map<Integer, DayEntity> monthMap = resultMap.get(dayEntity.getMonthNumber());
+							Map<Integer, DayEntity> monthMap = resultMap
+									.get(dayEntity.getMonthNumber());
 							if (monthMap == null) {
 								monthMap = new HashMap<Integer, DayEntity>();
 							}
@@ -194,16 +215,18 @@ public class ExportDataToExcel {
 				}
 			}
 		}
-		Iterator<Entry<Integer, Map<Integer, DayEntity>>> iter = resultMap.entrySet().iterator();
+		Iterator<Entry<Integer, Map<Integer, DayEntity>>> iter = resultMap
+				.entrySet().iterator();
 		while (iter.hasNext()) {
 			Entry<Integer, Map<Integer, DayEntity>> entry = iter.next();
 			mapList.add(entry.getValue());
-			System.out.println(entry.getValue());
+			// System.out.println(entry.getValue());
 		}
 		return mapList;
 	}
-	
-	private DayEntity getDayEntityByTxtString(String data) throws ParseException {
+
+	private DayEntity getDayEntityByTxtString(String data)
+			throws ParseException {
 		DayEntity dayEntity = null;
 		if (data.indexOf("-") > 0 && data.indexOf(":") > 10) {
 			data = analysisString(data).trim();
@@ -223,7 +246,7 @@ public class ExportDataToExcel {
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTime(parseDate);
 				dayEntity.setDayNumber(calendar.get(Calendar.DAY_OF_MONTH));
-				dayEntity.setMonthNumber(calendar.get(Calendar.MONTH)+1);
+				dayEntity.setMonthNumber(calendar.get(Calendar.MONTH) + 1);
 				dayEntity.setWeekName(getWeekNameByDayOfWeek(calendar
 						.get(Calendar.DAY_OF_WEEK)));
 				String startDate = SDF_YYYYMMDD.format(parseDate) + " "
@@ -260,6 +283,9 @@ public class ExportDataToExcel {
 			case ':':
 			case ' ':
 				resultString.append(oneChar);
+				break;
+			case '\t':
+				resultString.append(' ');
 				break;
 			default:
 				break;
@@ -299,9 +325,10 @@ public class ExportDataToExcel {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void dataExportToExcel(Map<Integer, DayEntity> dataMap)
+	private int dataExportToExcel(Map<Integer, DayEntity> dataMap)
 			throws IOException, RowsExceededException, WriteException,
 			BiffException {
+		int amount=0;
 		if (dataMap != null && !dataMap.isEmpty()) {
 			Workbook in = getExcelTemplate();
 			int month = 0;
@@ -364,11 +391,13 @@ public class ExportDataToExcel {
 					sheet.addCell(new Label(5, 18, "补贴天数：" + countDay
 							+ " 天     金额：" + countDay * Config.AMOUNT + " 元",
 							totalAmount.getCellFormat()));
+					amount = countDay * Config.AMOUNT;
 				}
 			}
 			wb.write();
 			wb.close();
 		}
+		return amount;
 	}
 
 	private String getEndTimeLine(DayEntity dayEntity) {
